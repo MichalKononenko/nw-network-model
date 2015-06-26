@@ -45,7 +45,7 @@ def two_point_resistance(val, vec, node1, node2):
 	totalnodes = len(val)
 	checkvector = (1.0/np.sqrt(totalnodes))*np.ones(totalnodes)       # The trivial vector solution
 	transvec = vec.T
-	for i in range(len(val)):
+	for i in xrange(len(val)):
 		if np.allclose(checkvector, abs(transvec[i]), rtol=1e-3, atol=1e-4):
 			continue        # Skips the trivial solution if found
 		if val[i] <= 0:
@@ -160,7 +160,7 @@ class WireNet:
 		searchlist = []
 		intersectionlist = []
 
-		for j in range(2*self.n):
+		for j in xrange(2*self.n):
 			wireindex = allxs_sort[j]
 			if wireindex < self.n:
 				# Starts of wires
@@ -186,7 +186,7 @@ class WireNet:
 
 		# Includes wire start and end points as additional nodes if required
 		if incendpoints:
-			for k in range(self.n):
+			for k in xrange(self.n):
 				intersectionlist.append((self.startcoords[k][0], self.startcoords[k][1], k, k))
 				intersectionlist.append((self.endcoords[k][0], self.endcoords[k][1], k, k))
 
@@ -199,7 +199,7 @@ class WireNet:
 		no_inter = len(intersectionlist_array)                    # Total number of intersections/nodes
 		conductance_ij = (1 - np.identity(no_inter))*(1.0/self.sheet_res)    # Conductance matrix with zeros on diagonal and matrix sheet resistance for other elements
 
-		for i in range(self.n):
+		for i in xrange(self.n):
 			# Finds indices of intersection list for wire i
 			ionline = np.concatenate([np.where(intersectionlist_array['wireA'] == i)[0], np.where(intersectionlist_array['wireB'] == i)[0]])
 			print "Wire {:3d}".format(i)
@@ -212,7 +212,7 @@ class WireNet:
 
 			p_sort = np.argsort(p.T[0])    # Now we calculate distances by sorting p by x coordinate
 
-			for k in range(len(p)-1):
+			for k in xrange(len(p)-1):
 				intlen = np.linalg.norm(p[p_sort[k]] - p[p_sort[k+1]])  # Distance between adjacent intersections
 				if intlen == 0:
 					continue

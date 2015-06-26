@@ -11,6 +11,7 @@ j-smith@ecs.berkeley.edu
 
 import os
 import sys
+import multiprocessing as mpr
 import numpy as np
 from nwnet import *
 from myfunctions import *
@@ -48,7 +49,9 @@ lnodes = []
 
 
 def main():
-	for i in range(5):
+	procs = 5     # Five processes running for multiprocessing
+	jobs = []
+	for i in xrange(procs):
 		n = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet)
 		net.append(n)
 		n.parameters()
@@ -57,7 +60,7 @@ def main():
 		evecs.append(eigenvectors)
 		lnodes.append(list_of_nodes)
 
-	for i in range(5):
+	for i in xrange(5):
 		for p in testpoints:
 			node1 = findnode(lnodes[i], p[0][0], p[0][1])
 			node2 = findnode(lnodes[i], p[1][0], p[1][1])
