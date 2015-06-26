@@ -1,6 +1,6 @@
 # Random resitor network - 2 point calculation
 # Jeremy Smith
-# Northwestern University
+# University of California, Berkeley
 # Version 2.0
 
 import numpy as np

@@ -27,6 +27,7 @@ c_i = np.sum(c_ij, axis=1)
 
 # Laplacian matrix
 Lmatrix = c_i*np.identity(len(c_i)) - c_ij
+print Lmatrix
 
 # Find eigenvalues and eigenvectors
 val, vec = np.linalg.eigh(Lmatrix)
@@ -35,6 +36,10 @@ val, vec = np.linalg.eigh(Lmatrix)
 R12 = 0
 R13 = 0
 R24 = 0
+
+print val
+print vec
+print np.sum(vec**2, axis=0)
 
 for i in range(len(val)):
 	if abs(val[i]) < 1e-10:
@@ -46,7 +51,6 @@ for i in range(len(val)):
 print R12
 print R13
 print R24
-
 
 
 
