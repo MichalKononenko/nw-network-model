@@ -21,7 +21,7 @@ __version__ = "2.0"
 # Define constants (dimensions in microns)
 substratesize = 100.0
 testpoints = substratesize*np.array([[[0.250,0.750],[0.750,0.250],],
-	                                 [[0.250,0.250],[0.750,0.750],],
+                                     [[0.250,0.250],[0.750,0.750],],
                                      [[0.375,0.625],[0.625,0.375],],
                                      [[0.375,0.375],[0.625,0.625],],
                                      [[0.323,0.500],[0.677,0.500],],
@@ -42,23 +42,28 @@ matrixrsheet = 1e8
 path = os.path.dirname(os.path.abspath(__file__))
 
 net = []
+evals = []
+evecs = []
+lnodes = []
 
 
 def main():
 	for i in range(5):
 		n = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet)
 		net.append(n)
+		n.parameters()
+		eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = n.solve(fulloutput=True)
+		evals.append(eigenvalues)
+		evecs.append(eigenvectors)
+		lnodes.append(list_of_nodes)
 
+	for i in range(5):
+		for p in testpoints:
+			node1 = findnode(lnodes[i], p[0][0], p[0][1])
+			node2 = findnode(lnodes[i], p[1][0], p[1][1])
+			print two_point_resistance(evals[i], evecs[i], node1, node2)
 
-	net[0].parameters()
-	eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = net[0].solve(fulloutput=True)
-
-	for p in testpoints:
-		node1 = findnode(list_of_nodes, p[0][0], p[0][1])
-		node2 = findnode(list_of_nodes, p[1][0], p[1][1])
-		print two_point_resistance(eigenvalues, eigenvectors, node1, node2)
-
-	print "Transmission:", 100*(1 - net[0].areal_coverage(nwdiameter))
+		print "Transmission:", 100*(1 - net[i].areal_coverage(nwdiameter))
 
 	return
 
