@@ -13,7 +13,7 @@ import sys
 import time
 import multiprocessing
 import numpy as np
-#from scipy import linalg
+from scipy import linalg
 import turtle as tu
 
 __author__ = "Jeremy Smith"
@@ -244,7 +244,7 @@ class WireNet(multiprocessing.Process):
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
 		print "Solving..."
-		val, vec = np.linalg.eig(lmatrix)                # Solves Laplacian matrix
+		val, vec = linalg.eig(lmatrix)                # Solves Laplacian matrix
 		#val = np.ones(len(c_i))
 		#vec = np.ones((len(c_i),len(c_i)))
 		if fulloutput:

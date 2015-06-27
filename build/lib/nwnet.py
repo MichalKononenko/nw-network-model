@@ -70,9 +70,11 @@ def findnode(list_of_nodes, x, y):
 # Class definition of nanowire network array object
 class WireNet(multiprocessing.Process):
 	"""Network of nanowires"""
-	def __init__(self, n, l, sdl, d, sk, wres, ires, rsh, debug=False, xsort=True):
+	def __init__(self, n, l, sdl, d, sk, wres, ires, rsh, queue=None, debug=False, xsort=True):
 
-		multiprocessing.Process.__init__(self)    # Init Process class for multiprocessing
+		super(WireNet, self).__init__()    # Init Process class for multiprocessing
+
+		self.queue = queue             # Queue to store output results
 
 		self.n = n                     # Number of wires
 		self.lav = l                   # Average length of wire
@@ -106,8 +108,9 @@ class WireNet(multiprocessing.Process):
 		return self
 
 	def run(self):
-		"""Process activity method - solves using multiprocessing"""
-		
+		"""Process activity method - stores results of solve() in queue"""
+		print "[PROCESS] {:d}".format(os.getpid())
+		self.queue.put(self.solve())
 
 	def next(self):
 		self._count += 1
@@ -208,7 +211,7 @@ class WireNet(multiprocessing.Process):
 
 		no_inter = len(intersectionlist_array)                    # Total number of intersections/nodes
 
-		conductance_ij = (1 - np.identity(no_inter))*(1.0/(self.sheet_res*no_inter))    # Conductance matrix with zeros on diagonal and normalise matrix sheet resistance for other elements
+		conductance_ij = (1 - np.identity(no_inter))*(1.0/(self.sheet_res*0.5*no_inter))    # Conductance matrix with zeros on diagonal and normalised matrix sheet resistance for other elements
 
 		for i in xrange(self.n):
 			# Finds indices of intersection list for wire i
@@ -235,13 +238,15 @@ class WireNet(multiprocessing.Process):
 		print "There are {:d} nodes from {:d} wires of which {:d} are intersections".format(no_inter, self.n, no_inter-2*self.n)
 		return conductance_ij, intersectionlist_array
 
-	def solve(self, fulloutput=False):
+	def solve(self, fulloutput=True):
 		"""Solves the resistor network"""
 		c_ij, intersectionlist_array = self.__conductance_matrix()              # Calculates conductance matrix (adjacency)
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
 		print "Solving..."
 		val, vec = linalg.eig(lmatrix)                # Solves Laplacian matrix
+		#val = np.ones(len(c_i))
+		#vec = np.ones((len(c_i),len(c_i)))
 		if fulloutput:
 			return np.real(val), np.real(vec), c_ij, lmatrix, intersectionlist_array
 		else:
