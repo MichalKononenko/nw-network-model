@@ -30,9 +30,9 @@ net1.parameters()
 
 To calculate the conductance matrix and solve the Laplacian for the network use:
 
-eigenvalues, eigenvectors = net1.solve()
+eigenvalues, eigenvectors = net1.solve(fulloutput=False)
 
-Or more advanced:
+Or more advanced (default):
 
 eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = net1.solve(fulloutput=True)
 

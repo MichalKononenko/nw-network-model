@@ -8,7 +8,10 @@ University of California, Berkeley
 j-smith@ecs.berkeley.edu
 """
 
+import os
+import sys
 import time
+import multiprocessing
 import numpy as np
 from scipy import linalg
 import turtle as tu
@@ -65,9 +68,12 @@ def findnode(list_of_nodes, x, y):
 
 
 # Class definition of nanowire network array object
-class WireNet:
+class WireNet(multiprocessing.Process):
 	"""Network of nanowires"""
 	def __init__(self, n, l, sdl, d, sk, wres, ires, rsh, debug=False, xsort=True):
+
+		multiprocessing.Process.__init__(self)    # Init Process class for multiprocessing
+
 		self.n = n                     # Number of wires
 		self.lav = l                   # Average length of wire
 		self.lstd = sdl                # Standard deviation of wire lengths
@@ -98,6 +104,10 @@ class WireNet:
 
 	def __iter__(self):
 		return self
+
+	def run(self):
+		"""Process activity method - solves using multiprocessing"""
+		
 
 	def next(self):
 		self._count += 1
@@ -197,7 +207,8 @@ class WireNet:
 		intersectionlist_array = self.intersections()             # List of intersections/nodes
 
 		no_inter = len(intersectionlist_array)                    # Total number of intersections/nodes
-		conductance_ij = (1 - np.identity(no_inter))*(1.0/self.sheet_res)    # Conductance matrix with zeros on diagonal and matrix sheet resistance for other elements
+
+		conductance_ij = (1 - np.identity(no_inter))*(1.0/(self.sheet_res*no_inter))    # Conductance matrix with zeros on diagonal and normalise matrix sheet resistance for other elements
 
 		for i in xrange(self.n):
 			# Finds indices of intersection list for wire i

@@ -33,7 +33,7 @@ agresistivity = 1.59e-2                                # Ag resistivity
 nwresistance = 4*agresistivity/(np.pi*nwdiameter**2)   # Nanowire resistance per unit length
 
 nwanglekappa = 0
-nwdensity = 0.050                           # Nanowires per sq micron
+nwdensity = 0.010                           # Nanowires per sq micron
 nwn = int(nwdensity*substratesize**2)       # Number of nanowires
 nwinterres = 1.0
 matrixrsheet = 1e8
@@ -52,10 +52,11 @@ def main():
 		node2 = findnode(list_of_nodes, p[1][0], p[1][1])
 		print two_point_resistance(eigenvalues, eigenvectors, node1, node2)
 
-	print eigenvalues
-	print eigenvectors
-	print two_point_resistance(eigenvalues, eigenvectors, 1, 0)
-	print 100*(1 - net1.areal_coverage(nwdiameter))
+	#print eigenvalues
+	#print eigenvectors
+	print conductance_matrix
+	print two_point_resistance(eigenvalues, eigenvectors, 8, 51)
+	print "T:", 100*(1 - net1.areal_coverage(nwdiameter))
 
 	#net1.plot(1, 0)
 

@@ -33,8 +33,8 @@ nwdiameter = 0.033
 agresistivity = 1.59e-2                                # Ag resistivity
 nwresistance = 4*agresistivity/(np.pi*nwdiameter**2)   # Nanowire resistance per unit length
 
-nwanglekappa = 50
-nwdensity = 0.020                           # Nanowires per sq micron
+nwanglekappa = 0
+nwdensity = 0.010                           # Nanowires per sq micron
 nwn = int(nwdensity*substratesize**2)       # Number of nanowires
 nwinterres = 1.0
 matrixrsheet = 1e8
@@ -42,33 +42,33 @@ matrixrsheet = 1e8
 # Path name for location of script
 path = os.path.dirname(os.path.abspath(__file__))
 
-net = []
-evals = []
-evecs = []
-lnodes = []
-
-
-def main():
-	procs = 5     # Five processes running for multiprocessing
-	jobs = []
-	for i in xrange(procs):
-		n = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet)
-		net.append(n)
-		n.parameters()
-		eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = n.solve(fulloutput=True)
-		evals.append(eigenvalues)
-		evecs.append(eigenvectors)
-		lnodes.append(list_of_nodes)
-
-	for i in xrange(5):
-		for p in testpoints:
-			node1 = findnode(lnodes[i], p[0][0], p[0][1])
-			node2 = findnode(lnodes[i], p[1][0], p[1][1])
-			print two_point_resistance(evals[i], evecs[i], node1, node2)
-
-		print "Transmission:", 100*(1 - net[i].areal_coverage(nwdiameter))
-
-	return
+nets = []
+results = []
 
 if __name__ == "__main__":
-	sys.exit(main())
+	procs = 4                      # 4 processes running for multiprocessing (one for each nanowire network)
+	for i in xrange(procs):
+		# Create nanowire network class
+		n = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet, queue=mpr.Queue())
+		# Append the nanowire network to list
+		nets.append(n)
+		# Start the solve process
+		n.start()
+
+	for n in nets:
+		# Append results from queue to list
+		results.append(n.queue.get())
+		# Wait for all processes to finish before returning to main thread
+		n.join()
+
+	for i, n in enumerate(nets):
+		eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = results[i]
+		for p in testpoints:
+			node1 = findnode(list_of_nodes, p[0][0], p[0][1])
+			node2 = findnode(list_of_nodes, p[1][0], p[1][1])
+			print two_point_resistance(eigenvalues, eigenvectors, node1, node2)
+
+		print "Transmission:", 100*(1 - n.areal_coverage(nwdiameter))
+
+
+
