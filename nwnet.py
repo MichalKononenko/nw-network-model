@@ -126,16 +126,17 @@ class WireNet(multiprocessing.Process):
 		return np.sum(self.wirelengths*wirediameter)/(self.sample_dimension)**2
 
 	def parameters(self):
-		"""Prints the wire parameters"""
-		print "Number of wires: {:d}".format(self.n)
-		print "Wire lengths: {:.3f} with standard deviation: {:.3f}".format(self.lav, self.lstd)
-		print "Sample size: {:.2f}".format(self.sample_dimension)
-		print "Wire areal density: {:.2e}".format(self.wire_density)
-		print "Angular dispersion: {:.3f} (calculated S-parameter of {:.3f})".format(self.angleskew, self.s)
-		print "Wire resistance per length: {:.3f}".format(self.wire_res)
-		print "Wire interconnect resistance: {:.3f}".format(self.intersect_res)
-		print "Matrix sheet resistance: {:.2e}".format(self.sheet_res)
-		return
+		"""Returns the wire parameters"""
+		params = []
+		params.append("Number of wires: {:d}".format(self.n))
+		params.append("Wire lengths: {:.3f} with standard deviation: {:.3f}".format(self.lav, self.lstd))
+		params.append("Sample size: {:.2f}".format(self.sample_dimension))
+		params.append("Wire areal density: {:.2e}".format(self.wire_density))
+		params.append("Angular dispersion: {:.3f} (calculated S-parameter of {:.3f})".format(self.angleskew, self.s))
+		params.append("Wire resistance per length: {:.3f}".format(self.wire_res))
+		params.append("Wire interconnect resistance: {:.3f}".format(self.intersect_res))
+		params.append("Matrix sheet resistance: {:.2e}".format(self.sheet_res))
+		return params
 
 	def sort_by_index(self):
 		"""Sorts the wires by their index"""
