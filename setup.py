@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name = 'nwnet',
-	version = '2.2',
+	version = '2.3',
 	author = 'Jeremy Smith',
 	author_email = 'j-smith@eecs.berkeley.edu',
 	url = 'http://ink.eecs.berkeley.edu',

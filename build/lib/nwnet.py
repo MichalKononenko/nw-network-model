@@ -17,7 +17,7 @@ from scipy import linalg
 import turtle as tu
 
 __author__ = "Jeremy Smith"
-__version__ = "2.2"
+__version__ = "2.3"
 
 
 # Useful function definitions
@@ -109,7 +109,7 @@ class WireNet(multiprocessing.Process):
 
 	def run(self):
 		"""Process activity method - stores results of solve() in queue"""
-		print "[PROCESS] {:d}".format(os.getpid())
+		print "[{:d}] Starting process: {:s}".format(os.getpid(), self)
 		self.queue.put(self.solve())
 
 	def next(self):
@@ -134,7 +134,7 @@ class WireNet(multiprocessing.Process):
 		print "Angular dispersion: {:.3f} (calculated S-parameter of {:.3f})".format(self.angleskew, self.s)
 		print "Wire resistance per length: {:.3f}".format(self.wire_res)
 		print "Wire interconnect resistance: {:.3f}".format(self.intersect_res)
-		print "Matrix sheet resistance: {:.3f}".format(self.sheet_res)
+		print "Matrix sheet resistance: {:.2e}".format(self.sheet_res)
 		return
 
 	def sort_by_index(self):
@@ -173,6 +173,8 @@ class WireNet(multiprocessing.Process):
 		searchlist = []
 		intersectionlist = []
 
+		print "[{:d}] Finding intersections...".format(os.getpid())
+
 		for j in xrange(2*self.n):
 			wireindex = allxs_sort[j]
 			if wireindex < self.n:
@@ -205,18 +207,21 @@ class WireNet(multiprocessing.Process):
 
 		return np.array(intersectionlist, dtype=[('xint', float), ('yint', float), ('wireA', int), ('wireB', int)])
 
-	def __conductance_matrix(self):
+	def __conductance_matrix(self, noprint=True):
 		"""Calculates the adjacency conductance matrix"""
 		intersectionlist_array = self.intersections()             # List of intersections/nodes
 
 		no_inter = len(intersectionlist_array)                    # Total number of intersections/nodes
+
+		print "[{:d}] Calculating conductance matrix...".format(os.getpid())
 
 		conductance_ij = (1 - np.identity(no_inter))*(1.0/(self.sheet_res*0.5*no_inter))    # Conductance matrix with zeros on diagonal and normalised matrix sheet resistance for other elements
 
 		for i in xrange(self.n):
 			# Finds indices of intersection list for wire i
 			ionline = np.concatenate([np.where(intersectionlist_array['wireA'] == i)[0], np.where(intersectionlist_array['wireB'] == i)[0]])
-			print "Wire {:3d}".format(i)
+			if not noprint:
+				print "Wire {:3d}".format(i)
 			if len(ionline) == 0:    # Checks for no intersections on the wire
 				continue
 			p = []                   # List of (x,y) coordinates of intersections on the wire
@@ -231,11 +236,12 @@ class WireNet(multiprocessing.Process):
 				if intlen == 0:
 					continue
 				c = 1.0/(intlen*self.wire_res + self.intersect_res)       # Conductance between intersections + resistance between wires
-				print "       {:.4f} between nodes: {:4d} and {:4d}".format(c, ionline[p_sort[k]], ionline[p_sort[k+1]])
+				if not noprint:
+					print "       {:.4f} between nodes: {:4d} and {:4d}".format(c, ionline[p_sort[k]], ionline[p_sort[k+1]])
 				conductance_ij[ionline[p_sort[k]]][ionline[p_sort[k+1]]] = c      # Sets relevant elements in conductance matrix
 				conductance_ij[ionline[p_sort[k+1]]][ionline[p_sort[k]]] = c      # Hermitian i.e. c_ij=c_ji
 
-		print "There are {:d} nodes from {:d} wires of which {:d} are intersections".format(no_inter, self.n, no_inter-2*self.n)
+		print "[{:d}] There are {:d} nodes from {:d} wires of which {:d} are intersections".format(os.getpid(), no_inter, self.n, no_inter-2*self.n)
 		return conductance_ij, intersectionlist_array
 
 	def solve(self, fulloutput=True):
@@ -243,10 +249,8 @@ class WireNet(multiprocessing.Process):
 		c_ij, intersectionlist_array = self.__conductance_matrix()              # Calculates conductance matrix (adjacency)
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
-		print "Solving..."
+		print "[{:d}] Solving...".format(os.getpid())
 		val, vec = linalg.eig(lmatrix)                # Solves Laplacian matrix
-		#val = np.ones(len(c_i))
-		#vec = np.ones((len(c_i),len(c_i)))
 		if fulloutput:
 			return np.real(val), np.real(vec), c_ij, lmatrix, intersectionlist_array
 		else:
