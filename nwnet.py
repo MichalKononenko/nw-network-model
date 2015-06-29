@@ -17,7 +17,7 @@ from scipy import linalg
 import turtle as tu
 
 __author__ = "Jeremy Smith"
-__version__ = "2.3"
+__version__ = "2.4"
 
 
 # Useful function definitions
@@ -251,7 +251,7 @@ class WireNet(multiprocessing.Process):
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
 		print "[{:d}] Solving...".format(os.getpid())
-		val, vec = linalg.eig(lmatrix)                # Solves Laplacian matrix
+		val, vec = linalg.eigh(lmatrix)               # Solves Laplacian matrix (Hermitian for speed)
 		if fulloutput:
 			return np.real(val), np.real(vec), c_ij, lmatrix, intersectionlist_array
 		else:

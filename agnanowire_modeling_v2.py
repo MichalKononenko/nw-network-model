@@ -11,6 +11,7 @@ j-smith@ecs.berkeley.edu
 
 import os
 import sys
+import time
 import multiprocessing as mpr
 import numpy as np
 from nwnet import *
@@ -34,9 +35,9 @@ nwdiameter = 0.033             # Nanowire diameter
 agresistivity = 1.59e-2                                # Ag resistivity
 nwresistance = 4*agresistivity/(np.pi*nwdiameter**2)   # Nanowire resistance per unit length
 
-nwanglekappa = 0                                         # Angular distribution of wires
+nwanglekappa = 0                                                # Angular distribution of wires
 nwdensity = np.array([0.040, 0.020, 0.010, 0.005])              # Nanowires per sq micron
-nwnumber = (nwdensity*substratesize**2).astype(int)      # Number of nanowires
+nwnumber = (nwdensity*substratesize**2).astype(int)             # Number of nanowires
 nwinterres = 1.0                                         # Resistance between wires
 matrixrsheet = 1e8                                       # Sheet resistance of matrix
 
@@ -46,7 +47,7 @@ path = os.path.dirname(os.path.abspath(__file__))
 summary_list = []
 summary_list_header = [["filename", "nwlength", "nwstd", "nwdiameter", "agresistivity", "nwresistance"
                        "nwanglekappa", "nwdensity", "nwn", "nwinterres", "matrixrsheet",
-                       "resistance", "resistanceerr", "transmission", "transmissionerr"]]
+                       "resistance", "medresistance", "resistanceerr", "transmission", "transmissionerr"]]
 
 if __name__ == "__main__":
 	print "\n================="
@@ -107,22 +108,30 @@ if __name__ == "__main__":
 
 		print "\n=================\n"
 
-		r_av = np.average(r_list)
-		r_stderr = np.std(r_list)/np.sqrt(len(r_list))
-		t_av = np.average(t_list)
+		r_list = np.array(r_list)
+		t_list = np.array(t_list)
+		r_median = np.median(r_list)
+		# Remove outliers that are an order of magnitude larger or smaller than the median
+		r_list_trim = r_list[np.where((r_list < 10*r_median)&(r_list > 0.1*r_median))]
+
+		# Compute means and standard errors
+		r_av = np.mean(r_list_trim)
+		r_stderr = np.std(r_list_trim)/np.sqrt(len(r_list_trim))
+		t_av = np.mean(t_list)
 		t_stderr = np.std(t_list)/np.sqrt(len(t_list))
 
-		print "Average resistance: {:.4e} +/- {:.4e}".format(r_av, r_stderr)
-		print "Average transmission: {:.3f} +/- {:.3f}".format(t_av, t_stderr)
+		print "Median resistance: {:.4e}".format(r_median)
+		print "Mean resistance: {:.4e} +/- {:.4e}".format(r_av, r_stderr)
+		print "Mean transmission: {:.3f} +/- {:.3f}".format(t_av, t_stderr)
 
 		print "\n=================\n"
 
 		summary_list.append(["output_{:05d}".format(runnumber), nwlength, nwlength_sd, nwdiameter,
 			                 agresistivity, nwresistance, nwanglekappa, nwdensity[loop], nwn, nwinterres, matrixrsheet,
-			                 r_av, r_stderr, t_av, t_stderr])
+			                 r_av, r_median, r_stderr, t_av, t_stderr])
 
-	mf.dataOutputHead("SUMMARY.txt", path, map(list, zip(*summary_list)), summary_list_header,
-		format_d="%s\t %.3f\t %.3f\t %.4f\t %.3e\t %.4e\t %.3f\t %.4f\t %i\t %.3f\t %.3e\t %.4e\t %.4e\t %.3f\t %.3f\n",
+	mf.dataOutputHead("SUMMARY_{:d}.txt".format(int(time.time())), path, map(list, zip(*summary_list)), summary_list_header,
+		format_d="%s\t %.3f\t %.3f\t %.4f\t %.3e\t %.4e\t %.3f\t %.4f\t %i\t %.3f\t %.3e\t %.4e\t %.4e\t %.4e\t %.3f\t %.3f\n",
 		format_h="%s\t")
 
 	print "DONE"
