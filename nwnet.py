@@ -13,11 +13,11 @@ import sys
 import time
 import multiprocessing
 import numpy as np
-from scipy import linalg
+from scipy import linalg as la
 import turtle as tu
 
 __author__ = "Jeremy Smith"
-__version__ = "2.4"
+__version__ = "2.5"
 
 
 # Useful function definitions
@@ -70,11 +70,11 @@ def findnode(list_of_nodes, x, y):
 # Class definition of nanowire network array object
 class WireNet(multiprocessing.Process):
 	"""Network of nanowires"""
-	def __init__(self, n, l, sdl, d, sk, wres, ires, rsh, queue=None, debug=False, xsort=True):
+	def __init__(self, n, l, sdl, d, sk, wres, ires, rsh, debug=False, xsort=True):
 
 		super(WireNet, self).__init__()    # Init Process class for multiprocessing
 
-		self.queue = queue             # Queue to store output results
+		self.queue = multiprocessing.Queue()     # Queue to store output results for multiprocessing
 
 		self.n = n                     # Number of wires
 		self.lav = l                   # Average length of wire
@@ -104,13 +104,21 @@ class WireNet(multiprocessing.Process):
 
 		self.allxcoords = np.column_stack([self.startcoords.T[0], self.endcoords.T[0]])    # All x-coordinates in 2xn array
 
+		# Computed parameters once solve() is run
+		self.eigenvalues = None         # Eigenvalues of Laplacian matrix
+		self.eigenvectors = None        # Eigenvectors of Laplacian matrix
+		self.laplacian = None           # Laplacian matrix
+		self.cmatrix = None             # Conductance matrix
+		self.list_of_nodes = None       # List of all nodes (from intersections())
+
 	def __iter__(self):
 		return self
 
 	def run(self):
-		"""Process activity method - stores results of solve() in queue"""
+		"""Process activity method"""
 		print "[{:d}] Starting process: {:s}".format(os.getpid(), self)
-		self.queue.put(self.solve())
+		self.solve()
+		self.queue.put([self.eigenvalues, self.eigenvectors, self.laplacian, self.cmatrix, self.list_of_nodes])
 
 	def next(self):
 		self._count += 1
@@ -147,7 +155,7 @@ class WireNet(multiprocessing.Process):
                               self.endcoords[i][0],
                               self.endcoords[i][1],
                               self.wirelengths[i]))
-		return np.array(output, dtype=[('index', int), ('x1', float), ('y1', float), ('x2', float), ('y2', float), ('length', float)])
+		return np.array(output, dtype=[('index', int), ('x1', float), ('y1', float), ('x2', float), ('y2', float), ('length', float)], order='F')
 
 	def sort_by_x(self):
 		"""Sorts the wires by the lowest x coordinate"""
@@ -160,7 +168,7 @@ class WireNet(multiprocessing.Process):
                                        self.endcoords[xs_sort[i]][0],
                                        self.endcoords[xs_sort[i]][1],
                                        self.wirelengths[xs_sort[i]]))
-		return np.array(output, dtype=[('index', int), ('x1', float), ('y1', float), ('x2', float), ('y2', float), ('length', float)])
+		return np.array(output, dtype=[('index', int), ('x1', float), ('y1', float), ('x2', float), ('y2', float), ('length', float)], order='F')
 
 	def intersections(self, noprint=True, incendpoints=True):
 		"""Finds intersections/nodes of wires"""
@@ -206,7 +214,7 @@ class WireNet(multiprocessing.Process):
 				intersectionlist.append((self.startcoords[k][0], self.startcoords[k][1], k, k))
 				intersectionlist.append((self.endcoords[k][0], self.endcoords[k][1], k, k))
 
-		return np.array(intersectionlist, dtype=[('xint', float), ('yint', float), ('wireA', int), ('wireB', int)])
+		return np.array(intersectionlist, dtype=[('xint', float), ('yint', float), ('wireA', int), ('wireB', int)], order='F')
 
 	def __conductance_matrix(self, noprint=True):
 		"""Calculates the adjacency conductance matrix"""
@@ -227,8 +235,8 @@ class WireNet(multiprocessing.Process):
 				continue
 			p = []                   # List of (x,y) coordinates of intersections on the wire
 			for j in ionline:
-				p.append(np.array([intersectionlist_array['xint'][j], intersectionlist_array['yint'][j]]))
-			p = np.array(p)
+				p.append([intersectionlist_array['xint'][j], intersectionlist_array['yint'][j]])
+			p = np.array(p, order='F')
 
 			p_sort = np.argsort(p.T[0])    # Now we calculate distances by sorting p by x coordinate
 
@@ -245,17 +253,20 @@ class WireNet(multiprocessing.Process):
 		print "[{:d}] There are {:d} nodes from {:d} wires of which {:d} are intersections".format(os.getpid(), no_inter, self.n, no_inter-2*self.n)
 		return conductance_ij, intersectionlist_array
 
-	def solve(self, fulloutput=True):
+	def solve(self):
 		"""Solves the resistor network"""
 		c_ij, intersectionlist_array = self.__conductance_matrix()              # Calculates conductance matrix (adjacency)
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
 		print "[{:d}] Solving...".format(os.getpid())
-		val, vec = linalg.eigh(lmatrix)               # Solves Laplacian matrix (Hermitian for speed)
-		if fulloutput:
-			return np.real(val), np.real(vec), c_ij, lmatrix, intersectionlist_array
-		else:
-			return np.real(val), np.real(vec)
+		val, vec = la.eigh(lmatrix)               # Solves Laplacian matrix (Hermitian for speed)
+		# Stores relevant parameters 
+		self.eigenvalues = np.real(val)
+		self.eigenvectors = np.real(vec)
+		self.laplacian = lmatrix
+		self.cmatrix = c_ij
+		self.list_of_nodes = intersectionlist_array
+		print "[{:d}] Done".format(os.getpid())
 
 	def plot(self, node1, node2, debug=False):
 		"""Plots wires and intersection points with python turtle"""
@@ -271,7 +282,10 @@ class WireNet(multiprocessing.Process):
 			tu.pendown()
 			tu.goto(self.endcoords[i][0], self.endcoords[i][1])
 		tu.penup()
-		intersect = self.intersections(noprint=True)
+		if self.list_of_nodes is None:
+			intersect = self.intersections(noprint=True)
+		else:
+			intersect = self.list_of_nodes
 		tu.goto(intersect[node1][0], intersect[node1][1])
 		tu.dot(10, "blue")
 		tu.goto(intersect[node2][0], intersect[node2][1])

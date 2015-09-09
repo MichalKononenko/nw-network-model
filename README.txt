@@ -1,9 +1,9 @@
-===========================================
-Module for random resistor network modeling
+============================================
+Module for random resistor network modelling
 Jeremy Smith
 University of California, Berkeley
 email: j-smith@eecs.berkeley.edu
-===========================================
+============================================
 
 
 Main feature is the WireNet class that creates the network of nanowires
@@ -23,18 +23,29 @@ wire_res         :    Resistance per length of wire
 intersect_res    :    Resistance of wire-to-wire interconnection
 sheet_res        :    Sheet resistance of matrix
 
-To view these parameters use:
+To view these parameters as a descriptive list use:
 
-net1.parameters()
+print net1.parameters()
 
 
 To calculate the conductance matrix and solve the Laplacian for the network use:
 
-eigenvalues, eigenvectors = net1.solve(fulloutput=False)
+net1.solve()
 
-Or more advanced (default):
+This then stores the following class variables:
+net1.eigenvalues      :    Eigenvalues of Laplacian matrix
+net1.eigenvectors     :    Eigenvectors of Laplacian matrix
+net1.laplacian        :    Laplacian matrix
+net1.cmatrix          :    Conductance matrix
+net1.list_of_nodes    :    List of all nodes (from intersections() function)
 
-eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = net1.solve(fulloutput=True)
+solve() can be run using python’s multiprocessing module as follows:
+
+import multiprocessing
+for n in nets:
+    n.start()
+for n in nets:
+    n.join()
 
 
 Then the resistance between any two points can be calculated using the helper function:

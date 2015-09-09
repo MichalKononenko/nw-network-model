@@ -17,7 +17,7 @@ from scipy import linalg
 import turtle as tu
 
 __author__ = "Jeremy Smith"
-__version__ = "2.4"
+__version__ = "2.5"
 
 
 # Useful function definitions
@@ -104,13 +104,20 @@ class WireNet(multiprocessing.Process):
 
 		self.allxcoords = np.column_stack([self.startcoords.T[0], self.endcoords.T[0]])    # All x-coordinates in 2xn array
 
+		# Computed parameters once solve() is run
+		self.eigenvalues = None         # Eigenvalues of Laplacian matrix
+		self.eigenvectors = None        # Eigenvectors of Laplacian matrix
+		self.laplacian = None           # Laplacian matrix
+		self.cmatrix = None             # Conductance matrix
+		self.list_of_nodes = None       # List of all nodes (from intersections())
+
 	def __iter__(self):
 		return self
 
 	def run(self):
-		"""Process activity method - stores results of solve() in queue"""
+		"""Process activity method"""
 		print "[{:d}] Starting process: {:s}".format(os.getpid(), self)
-		self.queue.put(self.solve())
+		self.solve()
 
 	def next(self):
 		self._count += 1
@@ -245,17 +252,20 @@ class WireNet(multiprocessing.Process):
 		print "[{:d}] There are {:d} nodes from {:d} wires of which {:d} are intersections".format(os.getpid(), no_inter, self.n, no_inter-2*self.n)
 		return conductance_ij, intersectionlist_array
 
-	def solve(self, fulloutput=True):
+	def solve(self):
 		"""Solves the resistor network"""
 		c_ij, intersectionlist_array = self.__conductance_matrix()              # Calculates conductance matrix (adjacency)
 		c_i = np.sum(c_ij, axis=1)                    # Calculates conductance matrix (degree)
 		lmatrix = c_i*np.identity(len(c_i)) - c_ij    # Laplacian matrix
 		print "[{:d}] Solving...".format(os.getpid())
 		val, vec = linalg.eigh(lmatrix)               # Solves Laplacian matrix (Hermitian for speed)
-		if fulloutput:
-			return np.real(val), np.real(vec), c_ij, lmatrix, intersectionlist_array
-		else:
-			return np.real(val), np.real(vec)
+		# Stores relevant parameters 
+		self.eigenvalues = np.real(val)
+		self.eigenvectors = np.real(vec)
+		self.laplacian = lmatrix
+		self.cmatrix = c_ij
+		self.list_of_nodes = intersectionlist_array
+		print "[{:d}] Done".format(os.getpid())
 
 	def plot(self, node1, node2, debug=False):
 		"""Plots wires and intersection points with python turtle"""
@@ -271,7 +281,10 @@ class WireNet(multiprocessing.Process):
 			tu.pendown()
 			tu.goto(self.endcoords[i][0], self.endcoords[i][1])
 		tu.penup()
-		intersect = self.intersections(noprint=True)
+		if self.list_of_nodes is None:
+			intersect = self.intersections(noprint=True)
+		else:
+			intersect = self.list_of_nodes
 		tu.goto(intersect[node1][0], intersect[node1][1])
 		tu.dot(10, "blue")
 		tu.goto(intersect[node2][0], intersect[node2][1])

@@ -19,7 +19,7 @@ __author__ = "Jeremy Smith"
 __version__ = "1.0"
 
 # Define constants (dimensions in microns)
-substratesize = 100.0
+substratesize = 25.0
 testpoints = substratesize*np.array([[[0.250,0.750],[0.750,0.250],],
 	                                 [[0.250,0.250],[0.750,0.750],],
                                      [[0.375,0.625],[0.625,0.375],],
@@ -33,7 +33,7 @@ agresistivity = 1.59e-2                                # Ag resistivity
 nwresistance = 4*agresistivity/(np.pi*nwdiameter**2)   # Nanowire resistance per unit length
 
 nwanglekappa = 0
-nwdensity = 0.010                           # Nanowires per sq micron
+nwdensity = 0.6                           # Nanowires per sq micron
 nwn = int(nwdensity*substratesize**2)       # Number of nanowires
 nwinterres = 1.0
 matrixrsheet = 1e8
@@ -43,19 +43,21 @@ path = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
-	net1 = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet, debug=True)
+	net1 = WireNet(nwn, nwlength, nwlength_sd, substratesize, nwanglekappa, nwresistance, nwinterres, matrixrsheet, debug=False)
 	net1.parameters()
-	eigenvalues, eigenvectors, conductance_matrix, laplacian_matrix, list_of_nodes = net1.solve(fulloutput=True)
+	net1.solve()
+	#net1.intersections()
 
 	for p in testpoints:
-		node1 = findnode(list_of_nodes, p[0][0], p[0][1])
-		node2 = findnode(list_of_nodes, p[1][0], p[1][1])
-		print two_point_resistance(eigenvalues, eigenvectors, node1, node2)
+		node1 = findnode(net1.list_of_nodes, p[0][0], p[0][1])
+		node2 = findnode(net1.list_of_nodes, p[1][0], p[1][1])
+		print two_point_resistance(net1.eigenvalues, net1.eigenvectors, node1, node2)
 
-	#print eigenvalues
-	#print eigenvectors
-	print conductance_matrix
-	print two_point_resistance(eigenvalues, eigenvectors, 8, 51)
+	#print net1.eigenvalues
+	#print net1.eigenvectors
+	#print net1.cmatrix
+	#print two_point_resistance(net1.eigenvalues, net1.eigenvectors, 8, 51)
+	print len(net1.list_of_nodes)
 	print "T:", 100*(1 - net1.areal_coverage(nwdiameter))
 
 	#net1.plot(1, 0)
