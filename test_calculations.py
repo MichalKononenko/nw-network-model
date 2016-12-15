@@ -51,9 +51,3 @@ for i in range(len(val)):
 print R12
 print R13
 print R24
-
-
-
-
-
-
